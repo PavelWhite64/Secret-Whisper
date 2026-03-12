@@ -1,22 +1,26 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Shopot - Anonymous Secret Sharing API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: whispers
+    description: Whisper posts
+  - name: reactions
+    description: Reactions to whispers
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +28,180 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /whispers:
+    get:
+      operationId: getWhispers
+      tags: [whispers]
+      summary: Get all active whispers
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of whispers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhispersListResponse"
+    post:
+      operationId: createWhisper
+      tags: [whispers]
+      summary: Create a whisper
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWhisperRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhisperResponse"
+
+  /whispers/{id}:
+    get:
+      operationId: getWhisper
+      tags: [whispers]
+      summary: Get a single whisper
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Whisper
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhisperResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /whispers/{id}/react:
+    post:
+      operationId: reactToWhisper
+      tags: [reactions]
+      summary: React to a whisper
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReactionRequest"
+      responses:
+        "200":
+          description: Updated reactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionsResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +212,144 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    AuthRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        password:
+          type: string
+          minLength: 6
+      required:
+        - username
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserResponse"
+      required:
+        - user
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+      required:
+        - id
+        - username
+
+    CreateWhisperRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 500
+        lifetime:
+          type: string
+          enum: [1h, 24h, 7d]
+          description: How long the whisper lives before disappearing
+      required:
+        - content
+        - lifetime
+
+    WhisperResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        lifetime:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        reactions:
+          $ref: "#/components/schemas/ReactionsCount"
+        isOwn:
+          type: boolean
+      required:
+        - id
+        - content
+        - lifetime
+        - expiresAt
+        - createdAt
+        - reactions
+        - isOwn
+
+    WhispersListResponse:
+      type: object
+      properties:
+        whispers:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhisperResponse"
+        total:
+          type: integer
+        page:
+          type: integer
+        hasMore:
+          type: boolean
+      required:
+        - whispers
+        - total
+        - page
+        - hasMore
+
+    ReactionsCount:
+      type: object
+      properties:
+        fire:
+          type: integer
+        heart:
+          type: integer
+        wow:
+          type: integer
+      required:
+        - fire
+        - heart
+        - wow
+
+    ReactionRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [fire, heart, wow]
+      required:
+        - type
+
+    ReactionsResponse:
+      type: object
+      properties:
+        reactions:
+          $ref: "#/components/schemas/ReactionsCount"
+      required:
+        - reactions
