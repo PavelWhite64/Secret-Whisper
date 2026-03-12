@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Shopot - Anonymous Secret Sharing API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { ReactionsCount } from "./reactionsCount";
 
@@ -15,4 +15,5 @@ export interface WhisperResponse {
   createdAt: Date;
   reactions: ReactionsCount;
   isOwn: boolean;
+  replyCount: number;
 }

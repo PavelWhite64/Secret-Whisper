@@ -5,11 +5,12 @@
  * Shopot - Anonymous Secret Sharing API
  * OpenAPI spec version: 0.2.0
  */
+import type { ProfileResponseStats } from "./profileResponseStats";
+import type { UserResponse } from "./userResponse";
 import type { WhisperResponse } from "./whisperResponse";
 
-export interface WhispersListResponse {
+export interface ProfileResponse {
+  user: UserResponse;
   whispers: WhisperResponse[];
-  total: number;
-  page: number;
-  hasMore: boolean;
+  stats: ProfileResponseStats;
 }

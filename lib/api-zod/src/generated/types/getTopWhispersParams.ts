@@ -6,12 +6,6 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface AuthRequest {
-  /**
-   * @minLength 3
-   * @maxLength 30
-   */
-  username: string;
-  /** @minLength 6 */
-  password: string;
-}
+export type GetTopWhispersParams = {
+  limit?: number;
+};

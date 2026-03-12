@@ -1,107 +1,124 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Flame, Sparkles, Clock, ShieldAlert } from "lucide-react";
-import { useCountdown } from "@/hooks/use-countdown";
-import { useReactToWhisper, type WhisperResponse } from "@workspace/api-client-react";
+import { Heart, Flame, MessageCircle, MoreHorizontal, Hourglass, Skull } from "lucide-react";
+import { useReactToWhisper, getGetWhispersQueryKey, getGetTopWhispersQueryKey, getGetProfileQueryKey, getGetMeQueryKey, type WhisperResponse, type UserResponse } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getGetWhispersQueryKey } from "@workspace/api-client-react";
-import { cn } from "@/lib/utils";
+import { useCountdown, TimeColor } from "@/hooks/use-countdown";
+import { cn, formatTimeAgo } from "@/lib/utils";
+import { ReplySection } from "./reply-section";
+import { ExtendDialog, KillDialog } from "./market-dialogs";
+import { AnimatePresence } from "framer-motion";
 
-interface WhisperCardProps {
+interface Props {
   whisper: WhisperResponse;
+  currentUser: UserResponse | null;
 }
 
-export function WhisperCard({ whisper }: WhisperCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const timeLeft = useCountdown(whisper.expiresAt);
-  const isExpired = timeLeft === "Истёк";
+export function WhisperCard({ whisper, currentUser }: Props) {
+  const { timeLeft, color, isExpired } = useCountdown(whisper.createdAt, whisper.expiresAt);
+  const [showReplies, setShowReplies] = useState(false);
+  const [showExtend, setShowExtend] = useState(false);
+  const [showKill, setShowKill] = useState(false);
   const queryClient = useQueryClient();
 
-  const { mutate: reactToWhisper, isPending: isReacting } = useReactToWhisper({
+  const reactMutation = useReactToWhisper({
     mutation: {
       onSuccess: () => {
-        // Invalidate the feed to show updated reaction counts
+        // Optimistic update would be better here, but invalidation works fine for now
         queryClient.invalidateQueries({ queryKey: getGetWhispersQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetTopWhispersQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetProfileQueryKey() });
+        if (whisper.isOwn) {
+          queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        }
       }
     }
   });
 
-  if (isExpired) return null;
-
-  const handleReact = (e: React.MouseEvent, type: "fire" | "heart" | "wow") => {
-    e.stopPropagation();
-    if (isReacting) return;
-    reactToWhisper({ id: whisper.id, data: { type } });
+  const handleReact = (type: "heart" | "fire" | "wow") => {
+    reactMutation.mutate({ id: whisper.id, data: { type } });
   };
 
+  const colorStyles: Record<TimeColor, string> = {
+    green: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+    yellow: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
+    red: "text-destructive bg-destructive/10 border-destructive/20",
+    gray: "text-muted-foreground bg-white/5 border-white/10"
+  };
+
+  if (isExpired) return null; // Whisper is dead, hide it
+
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ y: -2 }}
-      onClick={() => setIsExpanded(!isExpanded)}
-      className={cn(
-        "glass-panel rounded-2xl p-6 cursor-pointer group transition-all duration-300",
-        whisper.isOwn && "ring-1 ring-primary/30"
-      )}
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2 text-xs font-medium text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full">
-          <Clock className="w-3.5 h-3.5" />
-          <span className="animate-pulse">{timeLeft}</span>
-        </div>
-        <div className="flex items-center space-x-3">
-          {whisper.isOwn && (
-            <span className="text-xs font-medium text-primary/80 bg-primary/10 px-2 py-1 rounded border border-primary/20">
-              Ваш шёпот
+    <>
+      <div className="glass-panel p-5 sm:p-6 transition-all duration-300 hover:border-primary/30 group">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-2">
+            <div className={cn("px-2.5 py-1 rounded-md text-xs font-medium border flex items-center gap-1.5", colorStyles[color])}>
+              <Hourglass className="w-3 h-3" />
+              {timeLeft}
+            </div>
+            {whisper.isOwn && (
+              <span className="text-[10px] uppercase tracking-wider font-bold text-primary/70 bg-primary/10 px-2 py-1 rounded border border-primary/20">
+                Ваш
+              </span>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground/60 font-medium bg-black/40 px-2 py-1 rounded border border-white/5">
+              {whisper.lifetime}
             </span>
-          )}
-          <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-            {whisper.lifetime}
-          </span>
+            
+            {/* Market Actions Dropdown (simplistic approach: just show icons on hover for desktop, always visible for mobile) */}
+            {currentUser && (
+              <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                {!whisper.isOwn && (
+                  <button onClick={() => setShowExtend(true)} className="p-1.5 bg-accent/10 text-accent hover:bg-accent hover:text-white rounded-md transition-colors" title="Продлить жизнь (5 🪙/ч)">
+                    <Hourglass className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button onClick={() => setShowKill(true)} className="p-1.5 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white rounded-md transition-colors" title={whisper.isOwn ? "Убить свой (Бесплатно)" : "Убить чужой (20 🪙)"}>
+                  <Skull className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Content */}
+        <div className="min-h-[60px] flex items-center justify-center py-4">
+          <p className="text-lg sm:text-xl font-serif text-center leading-relaxed text-foreground/90 px-4">
+            "{whisper.content}"
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 flex justify-between items-center border-t border-white/5 pt-4">
+          <div className="flex gap-2 sm:gap-3">
+            <button onClick={() => handleReact("heart")} disabled={reactMutation.isPending} className="flex items-center gap-1.5 text-muted-foreground hover:text-rose-400 bg-white/5 hover:bg-rose-400/10 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border border-transparent hover:border-rose-400/20 disabled:opacity-50">
+              <Heart className="w-4 h-4" /> {whisper.reactions.heart}
+            </button>
+            <button onClick={() => handleReact("fire")} disabled={reactMutation.isPending} className="flex items-center gap-1.5 text-muted-foreground hover:text-orange-400 bg-white/5 hover:bg-orange-400/10 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border border-transparent hover:border-orange-400/20 disabled:opacity-50">
+              <Flame className="w-4 h-4" /> {whisper.reactions.fire}
+            </button>
+            <button onClick={() => handleReact("wow")} disabled={reactMutation.isPending} className="flex items-center gap-1.5 text-muted-foreground hover:text-blue-400 bg-white/5 hover:bg-blue-400/10 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border border-transparent hover:border-blue-400/20 disabled:opacity-50">
+              <span className="text-sm leading-none -mt-0.5">😮</span> {whisper.reactions.wow}
+            </button>
+          </div>
+
+          <button onClick={() => setShowReplies(!showReplies)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs font-medium px-2 py-1.5 transition-colors">
+            <MessageCircle className="w-4 h-4" /> {whisper.replyCount} ответов
+          </button>
+        </div>
+
+        {/* Inline Replies */}
+        <AnimatePresence>
+          {showReplies && <ReplySection whisperId={whisper.id} />}
+        </AnimatePresence>
       </div>
 
-      <div className="mb-6">
-        <p className={cn(
-          "font-serif text-2xl text-foreground/90 leading-relaxed",
-          !isExpanded && "line-clamp-3"
-        )}>
-          "{whisper.content}"
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between border-t border-white/5 pt-4">
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={(e) => handleReact(e, "heart")}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-rose-500/20 text-muted-foreground hover:text-rose-400 transition-colors"
-          >
-            <Heart className="w-4 h-4" />
-            <span className="text-sm font-medium">{whisper.reactions.heart}</span>
-          </button>
-          <button
-            onClick={(e) => handleReact(e, "fire")}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-orange-500/20 text-muted-foreground hover:text-orange-400 transition-colors"
-          >
-            <Flame className="w-4 h-4" />
-            <span className="text-sm font-medium">{whisper.reactions.fire}</span>
-          </button>
-          <button
-            onClick={(e) => handleReact(e, "wow")}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-indigo-500/20 text-muted-foreground hover:text-indigo-400 transition-colors"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span className="text-sm font-medium">{whisper.reactions.wow}</span>
-          </button>
-        </div>
-        
-        <div className="flex items-center text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ShieldAlert className="w-4 h-4" />
-        </div>
-      </div>
-    </motion.div>
+      <ExtendDialog isOpen={showExtend} onClose={() => setShowExtend(false)} whisperId={whisper.id} />
+      <KillDialog isOpen={showKill} onClose={() => setShowKill(false)} whisperId={whisper.id} isOwn={whisper.isOwn} />
+    </>
   );
 }

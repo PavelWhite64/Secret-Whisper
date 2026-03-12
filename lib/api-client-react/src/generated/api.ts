@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Shopot - Anonymous Secret Sharing API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
@@ -19,12 +19,20 @@ import type {
 import type {
   AuthRequest,
   AuthResponse,
+  CreateReplyRequest,
   CreateWhisperRequest,
   ErrorResponse,
+  ExtendRequest,
+  GetTopWhispersParams,
   GetWhispersParams,
   HealthStatus,
+  MarketActionResponse,
+  ProfileResponse,
   ReactionRequest,
   ReactionsResponse,
+  RepliesListResponse,
+  ReplyResponse,
+  StatsResponse,
   SuccessResponse,
   UserResponse,
   WhisperResponse,
@@ -116,7 +124,7 @@ export function useHealthCheck<
 }
 
 /**
- * @summary Register a new account
+ * @summary Register
  */
 export const getRegisterUrl = () => {
   return `/api/auth/register`;
@@ -179,7 +187,7 @@ export type RegisterMutationBody = BodyType<AuthRequest>;
 export type RegisterMutationError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Register a new account
+ * @summary Register
  */
 export const useRegister = <
   TError = ErrorType<ErrorResponse>,
@@ -432,7 +440,7 @@ export function useGetMe<
 }
 
 /**
- * @summary Get all active whispers
+ * @summary Get active whispers feed
  */
 export const getGetWhispersUrl = (params?: GetWhispersParams) => {
   const normalizedParams = new URLSearchParams();
@@ -499,7 +507,7 @@ export type GetWhispersQueryResult = NonNullable<
 export type GetWhispersQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get all active whispers
+ * @summary Get active whispers feed
  */
 
 export function useGetWhispers<
@@ -610,6 +618,100 @@ export const useCreateWhisper = <
 > => {
   return useMutation(getCreateWhisperMutationOptions(options));
 };
+
+/**
+ * @summary Get top whispers by reactions
+ */
+export const getGetTopWhispersUrl = (params?: GetTopWhispersParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/whispers/top?${stringifiedParams}`
+    : `/api/whispers/top`;
+};
+
+export const getTopWhispers = async (
+  params?: GetTopWhispersParams,
+  options?: RequestInit,
+): Promise<WhispersListResponse> => {
+  return customFetch<WhispersListResponse>(getGetTopWhispersUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTopWhispersQueryKey = (params?: GetTopWhispersParams) => {
+  return [`/api/whispers/top`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetTopWhispersQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTopWhispers>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetTopWhispersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTopWhispers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTopWhispersQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTopWhispers>>> = ({
+    signal,
+  }) => getTopWhispers(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTopWhispers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTopWhispersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTopWhispers>>
+>;
+export type GetTopWhispersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get top whispers by reactions
+ */
+
+export function useGetTopWhispers<
+  TData = Awaited<ReturnType<typeof getTopWhispers>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetTopWhispersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTopWhispers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTopWhispersQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get a single whisper
@@ -783,4 +885,491 @@ export const useReactToWhisper = <
   TContext
 > => {
   return useMutation(getReactToWhisperMutationOptions(options));
+};
+
+/**
+ * @summary Get replies for a whisper
+ */
+export const getGetRepliesUrl = (id: string) => {
+  return `/api/whispers/${id}/replies`;
+};
+
+export const getReplies = async (
+  id: string,
+  options?: RequestInit,
+): Promise<RepliesListResponse> => {
+  return customFetch<RepliesListResponse>(getGetRepliesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRepliesQueryKey = (id: string) => {
+  return [`/api/whispers/${id}/replies`] as const;
+};
+
+export const getGetRepliesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReplies>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getReplies>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRepliesQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReplies>>> = ({
+    signal,
+  }) => getReplies(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReplies>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRepliesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReplies>>
+>;
+export type GetRepliesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get replies for a whisper
+ */
+
+export function useGetReplies<
+  TData = Awaited<ReturnType<typeof getReplies>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getReplies>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRepliesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a reply to a whisper
+ */
+export const getCreateReplyUrl = (id: string) => {
+  return `/api/whispers/${id}/replies`;
+};
+
+export const createReply = async (
+  id: string,
+  createReplyRequest: CreateReplyRequest,
+  options?: RequestInit,
+): Promise<ReplyResponse> => {
+  return customFetch<ReplyResponse>(getCreateReplyUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createReplyRequest),
+  });
+};
+
+export const getCreateReplyMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createReply>>,
+    TError,
+    { id: string; data: BodyType<CreateReplyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createReply>>,
+  TError,
+  { id: string; data: BodyType<CreateReplyRequest> },
+  TContext
+> => {
+  const mutationKey = ["createReply"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createReply>>,
+    { id: string; data: BodyType<CreateReplyRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createReply(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateReplyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createReply>>
+>;
+export type CreateReplyMutationBody = BodyType<CreateReplyRequest>;
+export type CreateReplyMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a reply to a whisper
+ */
+export const useCreateReply = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createReply>>,
+    TError,
+    { id: string; data: BodyType<CreateReplyRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createReply>>,
+  TError,
+  { id: string; data: BodyType<CreateReplyRequest> },
+  TContext
+> => {
+  return useMutation(getCreateReplyMutationOptions(options));
+};
+
+/**
+ * @summary Get global stats
+ */
+export const getGetStatsUrl = () => {
+  return `/api/stats`;
+};
+
+export const getStats = async (
+  options?: RequestInit,
+): Promise<StatsResponse> => {
+  return customFetch<StatsResponse>(getGetStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStatsQueryKey = () => {
+  return [`/api/stats`] as const;
+};
+
+export const getGetStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getStats>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetStatsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getStats>>> = ({
+    signal,
+  }) => getStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStats>>
+>;
+export type GetStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get global stats
+ */
+
+export function useGetStats<
+  TData = Awaited<ReturnType<typeof getStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getStats>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get own profile with whispers and stats
+ */
+export const getGetProfileUrl = () => {
+  return `/api/profile`;
+};
+
+export const getProfile = async (
+  options?: RequestInit,
+): Promise<ProfileResponse> => {
+  return customFetch<ProfileResponse>(getGetProfileUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProfileQueryKey = () => {
+  return [`/api/profile`] as const;
+};
+
+export const getGetProfileQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProfile>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProfile>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProfileQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfile>>> = ({
+    signal,
+  }) => getProfile({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProfile>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProfileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProfile>>
+>;
+export type GetProfileQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get own profile with whispers and stats
+ */
+
+export function useGetProfile<
+  TData = Awaited<ReturnType<typeof getProfile>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProfile>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProfileQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Spend coins to extend a whisper's life
+ */
+export const getExtendWhisperUrl = (id: string) => {
+  return `/api/market/extend/${id}`;
+};
+
+export const extendWhisper = async (
+  id: string,
+  extendRequest: ExtendRequest,
+  options?: RequestInit,
+): Promise<MarketActionResponse> => {
+  return customFetch<MarketActionResponse>(getExtendWhisperUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(extendRequest),
+  });
+};
+
+export const getExtendWhisperMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof extendWhisper>>,
+    TError,
+    { id: string; data: BodyType<ExtendRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof extendWhisper>>,
+  TError,
+  { id: string; data: BodyType<ExtendRequest> },
+  TContext
+> => {
+  const mutationKey = ["extendWhisper"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof extendWhisper>>,
+    { id: string; data: BodyType<ExtendRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return extendWhisper(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ExtendWhisperMutationResult = NonNullable<
+  Awaited<ReturnType<typeof extendWhisper>>
+>;
+export type ExtendWhisperMutationBody = BodyType<ExtendRequest>;
+export type ExtendWhisperMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Spend coins to extend a whisper's life
+ */
+export const useExtendWhisper = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof extendWhisper>>,
+    TError,
+    { id: string; data: BodyType<ExtendRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof extendWhisper>>,
+  TError,
+  { id: string; data: BodyType<ExtendRequest> },
+  TContext
+> => {
+  return useMutation(getExtendWhisperMutationOptions(options));
+};
+
+/**
+ * @summary Spend coins to kill a whisper early
+ */
+export const getKillWhisperUrl = (id: string) => {
+  return `/api/market/kill/${id}`;
+};
+
+export const killWhisper = async (
+  id: string,
+  options?: RequestInit,
+): Promise<MarketActionResponse> => {
+  return customFetch<MarketActionResponse>(getKillWhisperUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getKillWhisperMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof killWhisper>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof killWhisper>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["killWhisper"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof killWhisper>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return killWhisper(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type KillWhisperMutationResult = NonNullable<
+  Awaited<ReturnType<typeof killWhisper>>
+>;
+
+export type KillWhisperMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Spend coins to kill a whisper early
+ */
+export const useKillWhisper = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof killWhisper>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof killWhisper>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getKillWhisperMutationOptions(options));
 };

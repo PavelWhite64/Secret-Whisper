@@ -1,20 +1,19 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.1.0
+  version: 0.2.0
   description: Shopot - Anonymous Secret Sharing API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: auth
-    description: Authentication
   - name: whispers
-    description: Whisper posts
-  - name: reactions
-    description: Reactions to whispers
+  - name: replies
+  - name: stats
+  - name: market
+  - name: profile
 paths:
   /healthz:
     get:
@@ -33,7 +32,7 @@ paths:
     post:
       operationId: register
       tags: [auth]
-      summary: Register a new account
+      summary: Register
       requestBody:
         required: true
         content:
@@ -48,7 +47,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
         "409":
-          description: Username already taken
+          description: Username taken
           content:
             application/json:
               schema:
@@ -99,7 +98,7 @@ paths:
       summary: Get current user
       responses:
         "200":
-          description: Current user
+          description: OK
           content:
             application/json:
               schema:
@@ -115,7 +114,7 @@ paths:
     get:
       operationId: getWhispers
       tags: [whispers]
-      summary: Get all active whispers
+      summary: Get active whispers feed
       parameters:
         - name: page
           in: query
@@ -129,7 +128,7 @@ paths:
             default: 20
       responses:
         "200":
-          description: List of whispers
+          description: OK
           content:
             application/json:
               schema:
@@ -152,6 +151,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/WhisperResponse"
 
+  /whispers/top:
+    get:
+      operationId: getTopWhispers
+      tags: [whispers]
+      summary: Get top whispers by reactions
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhispersListResponse"
+
   /whispers/{id}:
     get:
       operationId: getWhisper
@@ -165,7 +183,7 @@ paths:
             type: string
       responses:
         "200":
-          description: Whisper
+          description: OK
           content:
             application/json:
               schema:
@@ -180,7 +198,7 @@ paths:
   /whispers/{id}/react:
     post:
       operationId: reactToWhisper
-      tags: [reactions]
+      tags: [whispers]
       summary: React to a whisper
       parameters:
         - name: id
@@ -196,11 +214,159 @@ paths:
               $ref: "#/components/schemas/ReactionRequest"
       responses:
         "200":
-          description: Updated reactions
+          description: OK
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReactionsResponse"
+
+  /whispers/{id}/replies:
+    get:
+      operationId: getReplies
+      tags: [replies]
+      summary: Get replies for a whisper
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepliesListResponse"
+    post:
+      operationId: createReply
+      tags: [replies]
+      summary: Create a reply to a whisper
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReplyRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReplyResponse"
+        "404":
+          description: Whisper not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Get global stats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsResponse"
+
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      summary: Get own profile with whispers and stats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /market/extend/{id}:
+    post:
+      operationId: extendWhisper
+      tags: [market]
+      summary: Spend coins to extend a whisper's life
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExtendRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketActionResponse"
+        "400":
+          description: Not enough coins or whisper not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /market/kill/{id}:
+    post:
+      operationId: killWhisper
+      tags: [market]
+      summary: Spend coins to kill a whisper early
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketActionResponse"
+        "400":
+          description: Not enough coins or whisper not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -209,24 +375,21 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]
 
     SuccessResponse:
       type: object
       properties:
         success:
           type: boolean
-      required:
-        - success
+      required: [success]
 
     AuthRequest:
       type: object
@@ -238,17 +401,14 @@ components:
         password:
           type: string
           minLength: 6
-      required:
-        - username
-        - password
+      required: [username, password]
 
     AuthResponse:
       type: object
       properties:
         user:
           $ref: "#/components/schemas/UserResponse"
-      required:
-        - user
+      required: [user]
 
     UserResponse:
       type: object
@@ -257,9 +417,9 @@ components:
           type: integer
         username:
           type: string
-      required:
-        - id
-        - username
+        coins:
+          type: integer
+      required: [id, username, coins]
 
     CreateWhisperRequest:
       type: object
@@ -271,10 +431,7 @@ components:
         lifetime:
           type: string
           enum: [1h, 24h, 7d]
-          description: How long the whisper lives before disappearing
-      required:
-        - content
-        - lifetime
+      required: [content, lifetime]
 
     WhisperResponse:
       type: object
@@ -295,14 +452,9 @@ components:
           $ref: "#/components/schemas/ReactionsCount"
         isOwn:
           type: boolean
-      required:
-        - id
-        - content
-        - lifetime
-        - expiresAt
-        - createdAt
-        - reactions
-        - isOwn
+        replyCount:
+          type: integer
+      required: [id, content, lifetime, expiresAt, createdAt, reactions, isOwn, replyCount]
 
     WhispersListResponse:
       type: object
@@ -317,11 +469,7 @@ components:
           type: integer
         hasMore:
           type: boolean
-      required:
-        - whispers
-        - total
-        - page
-        - hasMore
+      required: [whispers, total, page, hasMore]
 
     ReactionsCount:
       type: object
@@ -332,10 +480,7 @@ components:
           type: integer
         wow:
           type: integer
-      required:
-        - fire
-        - heart
-        - wow
+      required: [fire, heart, wow]
 
     ReactionRequest:
       type: object
@@ -343,13 +488,106 @@ components:
         type:
           type: string
           enum: [fire, heart, wow]
-      required:
-        - type
+      required: [type]
 
     ReactionsResponse:
       type: object
       properties:
         reactions:
           $ref: "#/components/schemas/ReactionsCount"
-      required:
-        - reactions
+        coins:
+          type: integer
+          description: Updated coins for the whisper owner (only if logged in and it's your whisper)
+      required: [reactions]
+
+    CreateReplyRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 300
+      required: [content]
+
+    ReplyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        isOwn:
+          type: boolean
+      required: [id, content, createdAt, isOwn]
+
+    RepliesListResponse:
+      type: object
+      properties:
+        replies:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReplyResponse"
+      required: [replies]
+
+    StatsResponse:
+      type: object
+      properties:
+        totalDied:
+          type: integer
+          description: Total whispers that have died since the beginning
+        totalAlive:
+          type: integer
+          description: Currently alive whispers
+        totalCreated:
+          type: integer
+      required: [totalDied, totalAlive, totalCreated]
+
+    ProfileResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserResponse"
+        whispers:
+          type: array
+          items:
+            $ref: "#/components/schemas/WhisperResponse"
+        stats:
+          type: object
+          properties:
+            totalCreated:
+              type: integer
+            totalDied:
+              type: integer
+            totalReactionsReceived:
+              type: integer
+          required: [totalCreated, totalDied, totalReactionsReceived]
+      required: [user, whispers, stats]
+
+    ExtendRequest:
+      type: object
+      properties:
+        hours:
+          type: integer
+          minimum: 1
+          maximum: 24
+          description: Hours to add (costs 5 coins per hour)
+      required: [hours]
+
+    MarketActionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        coinsSpent:
+          type: integer
+        coinsRemaining:
+          type: integer
+        newExpiresAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+      required: [success, coinsSpent, coinsRemaining, message]

@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Shopot - Anonymous Secret Sharing API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from "zod";
 
@@ -15,7 +15,7 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * @summary Register a new account
+ * @summary Register
  */
 export const registerBodyUsernameMin = 3;
 export const registerBodyUsernameMax = 30;
@@ -47,6 +47,7 @@ export const LoginResponse = zod.object({
   user: zod.object({
     id: zod.number(),
     username: zod.string(),
+    coins: zod.number(),
   }),
 });
 
@@ -63,10 +64,11 @@ export const LogoutResponse = zod.object({
 export const GetMeResponse = zod.object({
   id: zod.number(),
   username: zod.string(),
+  coins: zod.number(),
 });
 
 /**
- * @summary Get all active whispers
+ * @summary Get active whispers feed
  */
 export const getWhispersQueryPageDefault = 1;
 export const getWhispersQueryLimitDefault = 20;
@@ -90,6 +92,7 @@ export const GetWhispersResponse = zod.object({
         wow: zod.number(),
       }),
       isOwn: zod.boolean(),
+      replyCount: zod.number(),
     }),
   ),
   total: zod.number(),
@@ -104,9 +107,38 @@ export const createWhisperBodyContentMax = 500;
 
 export const CreateWhisperBody = zod.object({
   content: zod.string().min(1).max(createWhisperBodyContentMax),
-  lifetime: zod
-    .enum(["1h", "24h", "7d"])
-    .describe("How long the whisper lives before disappearing"),
+  lifetime: zod.enum(["1h", "24h", "7d"]),
+});
+
+/**
+ * @summary Get top whispers by reactions
+ */
+export const getTopWhispersQueryLimitDefault = 20;
+
+export const GetTopWhispersQueryParams = zod.object({
+  limit: zod.coerce.number().default(getTopWhispersQueryLimitDefault),
+});
+
+export const GetTopWhispersResponse = zod.object({
+  whispers: zod.array(
+    zod.object({
+      id: zod.string(),
+      content: zod.string(),
+      lifetime: zod.string(),
+      expiresAt: zod.date(),
+      createdAt: zod.date(),
+      reactions: zod.object({
+        fire: zod.number(),
+        heart: zod.number(),
+        wow: zod.number(),
+      }),
+      isOwn: zod.boolean(),
+      replyCount: zod.number(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  hasMore: zod.boolean(),
 });
 
 /**
@@ -128,6 +160,7 @@ export const GetWhisperResponse = zod.object({
     wow: zod.number(),
   }),
   isOwn: zod.boolean(),
+  replyCount: zod.number(),
 });
 
 /**
@@ -147,4 +180,124 @@ export const ReactToWhisperResponse = zod.object({
     heart: zod.number(),
     wow: zod.number(),
   }),
+  coins: zod
+    .number()
+    .optional()
+    .describe(
+      "Updated coins for the whisper owner (only if logged in and it's your whisper)",
+    ),
+});
+
+/**
+ * @summary Get replies for a whisper
+ */
+export const GetRepliesParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetRepliesResponse = zod.object({
+  replies: zod.array(
+    zod.object({
+      id: zod.string(),
+      content: zod.string(),
+      createdAt: zod.date(),
+      isOwn: zod.boolean(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a reply to a whisper
+ */
+export const CreateReplyParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const createReplyBodyContentMax = 300;
+
+export const CreateReplyBody = zod.object({
+  content: zod.string().min(1).max(createReplyBodyContentMax),
+});
+
+/**
+ * @summary Get global stats
+ */
+export const GetStatsResponse = zod.object({
+  totalDied: zod
+    .number()
+    .describe("Total whispers that have died since the beginning"),
+  totalAlive: zod.number().describe("Currently alive whispers"),
+  totalCreated: zod.number(),
+});
+
+/**
+ * @summary Get own profile with whispers and stats
+ */
+export const GetProfileResponse = zod.object({
+  user: zod.object({
+    id: zod.number(),
+    username: zod.string(),
+    coins: zod.number(),
+  }),
+  whispers: zod.array(
+    zod.object({
+      id: zod.string(),
+      content: zod.string(),
+      lifetime: zod.string(),
+      expiresAt: zod.date(),
+      createdAt: zod.date(),
+      reactions: zod.object({
+        fire: zod.number(),
+        heart: zod.number(),
+        wow: zod.number(),
+      }),
+      isOwn: zod.boolean(),
+      replyCount: zod.number(),
+    }),
+  ),
+  stats: zod.object({
+    totalCreated: zod.number(),
+    totalDied: zod.number(),
+    totalReactionsReceived: zod.number(),
+  }),
+});
+
+/**
+ * @summary Spend coins to extend a whisper's life
+ */
+export const ExtendWhisperParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const extendWhisperBodyHoursMax = 24;
+
+export const ExtendWhisperBody = zod.object({
+  hours: zod
+    .number()
+    .min(1)
+    .max(extendWhisperBodyHoursMax)
+    .describe("Hours to add (costs 5 coins per hour)"),
+});
+
+export const ExtendWhisperResponse = zod.object({
+  success: zod.boolean(),
+  coinsSpent: zod.number(),
+  coinsRemaining: zod.number(),
+  newExpiresAt: zod.date().optional(),
+  message: zod.string(),
+});
+
+/**
+ * @summary Spend coins to kill a whisper early
+ */
+export const KillWhisperParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const KillWhisperResponse = zod.object({
+  success: zod.boolean(),
+  coinsSpent: zod.number(),
+  coinsRemaining: zod.number(),
+  newExpiresAt: zod.date().optional(),
+  message: zod.string(),
 });

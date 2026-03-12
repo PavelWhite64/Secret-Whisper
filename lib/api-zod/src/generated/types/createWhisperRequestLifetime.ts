@@ -3,12 +3,9 @@
  * Do not edit manually.
  * Api
  * Shopot - Anonymous Secret Sharing API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
-/**
- * How long the whisper lives before disappearing
- */
 export type CreateWhisperRequestLifetime =
   (typeof CreateWhisperRequestLifetime)[keyof typeof CreateWhisperRequestLifetime];
 

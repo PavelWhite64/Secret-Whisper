@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface SuccessResponse {
+export interface MarketActionResponse {
   success: boolean;
+  coinsSpent: number;
+  coinsRemaining: number;
+  newExpiresAt?: Date;
+  message: string;
 }

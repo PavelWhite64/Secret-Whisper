@@ -7,6 +7,7 @@ import { X, UserPlus, LogIn, KeyRound } from "lucide-react";
 import { useLogin, useRegister, getGetMeQueryKey, getGetWhispersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { Button, Input } from "./ui-elements";
 
 const schema = z.object({
   username: z.string().min(3, "Минимум 3 символа").max(30, "Максимум 30 символов"),
@@ -37,16 +38,16 @@ export function AuthDialog({ isOpen, onClose }: AuthDialogProps) {
     onClose();
   };
 
-  const onAuthError = (err: any) => {
+  const onAuthErrorFn = (err: any) => {
     setAuthError(err?.data?.error || err?.message || "Произошла ошибка при авторизации");
   };
 
   const loginMutation = useLogin({
-    mutation: { onSuccess: onAuthSuccess, onError: onAuthError }
+    mutation: { onSuccess: onAuthSuccess, onError: onAuthErrorFn }
   });
 
   const registerMutation = useRegister({
-    mutation: { onSuccess: onAuthSuccess, onError: onAuthError }
+    mutation: { onSuccess: onAuthSuccess, onError: onAuthErrorFn }
   });
 
   const isPending = loginMutation.isPending || registerMutation.isPending;
@@ -69,18 +70,18 @@ export function AuthDialog({ isOpen, onClose }: AuthDialogProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-40"
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="glass-panel w-full max-w-md rounded-3xl p-8 relative pointer-events-auto border-t border-primary/20"
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="glass-panel w-full max-w-md rounded-3xl p-8 relative pointer-events-auto"
             >
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-full transition-colors"
+                className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -89,7 +90,7 @@ export function AuthDialog({ isOpen, onClose }: AuthDialogProps) {
                 <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 text-primary shadow-[0_0_30px_-5px_rgba(120,50,255,0.4)]">
                   {mode === "login" ? <LogIn className="w-8 h-8" /> : <UserPlus className="w-8 h-8" />}
                 </div>
-                <h2 className="text-2xl font-bold text-foreground font-serif">
+                <h2 className="text-3xl font-bold text-foreground font-serif">
                   {mode === "login" ? "Войти в тень" : "Создать личность"}
                 </h2>
                 <p className="text-muted-foreground text-sm mt-2">
@@ -128,10 +129,10 @@ export function AuthDialog({ isOpen, onClose }: AuthDialogProps) {
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground">
                       <UserPlus className="w-5 h-5" />
                     </div>
-                    <input
+                    <Input
                       {...register("username")}
                       placeholder="Имя в тени"
-                      className="w-full bg-black/20 border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
+                      className="pl-12"
                     />
                   </div>
                   {errors.username && <p className="text-xs text-destructive mt-1.5 pl-1">{errors.username.message}</p>}
@@ -142,11 +143,11 @@ export function AuthDialog({ isOpen, onClose }: AuthDialogProps) {
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground">
                       <KeyRound className="w-5 h-5" />
                     </div>
-                    <input
+                    <Input
                       type="password"
                       {...register("password")}
                       placeholder="Секретный ключ"
-                      className="w-full bg-black/20 border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
+                      className="pl-12"
                     />
                   </div>
                   {errors.password && <p className="text-xs text-destructive mt-1.5 pl-1">{errors.password.message}</p>}
@@ -158,16 +159,13 @@ export function AuthDialog({ isOpen, onClose }: AuthDialogProps) {
                   </div>
                 )}
 
-                <button
+                <Button
                   type="submit"
-                  disabled={isPending}
-                  className="w-full bg-white/10 hover:bg-white/15 border border-white/10 text-foreground py-3.5 rounded-xl font-medium transition-all duration-200 disabled:opacity-50"
+                  isLoading={isPending}
+                  className="w-full h-12 text-base"
                 >
-                  {isPending 
-                    ? "Проверка..." 
-                    : mode === "login" ? "Войти" : "Зарегистрироваться"
-                  }
-                </button>
+                  {mode === "login" ? "Войти" : "Зарегистрироваться"}
+                </Button>
               </form>
             </motion.div>
           </div>

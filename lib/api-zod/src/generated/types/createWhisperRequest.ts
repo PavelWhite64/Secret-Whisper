@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Shopot - Anonymous Secret Sharing API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { CreateWhisperRequestLifetime } from "./createWhisperRequestLifetime";
 
@@ -13,6 +13,5 @@ export interface CreateWhisperRequest {
    * @maxLength 500
    */
   content: string;
-  /** How long the whisper lives before disappearing */
   lifetime: CreateWhisperRequestLifetime;
 }

@@ -1,33 +1,58 @@
 import { useState, useEffect } from "react";
-import { differenceInSeconds } from "date-fns";
 
-export function useCountdown(expiresAt: string) {
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+export type TimeColor = "green" | "yellow" | "red" | "gray";
+
+export function useCountdown(createdAtStr: string, expiresAtStr: string) {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [color, setColor] = useState<TimeColor>("gray");
+  const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
-    const targetDate = new Date(expiresAt);
+    const createdAt = new Date(createdAtStr).getTime();
+    const expiresAt = new Date(expiresAtStr).getTime();
+    const totalLifetime = expiresAt - createdAt;
 
-    const updateCountdown = () => {
-      const seconds = differenceInSeconds(targetDate, new Date());
-      setTimeLeft(seconds > 0 ? seconds : 0);
+    const updateTimer = () => {
+      const now = Date.now();
+      const remaining = expiresAt - now;
+
+      if (remaining <= 0) {
+        setTimeLeft("Мёртв");
+        setColor("gray");
+        setIsExpired(true);
+        return;
+      }
+
+      setIsExpired(false);
+      
+      // Calculate color based on percentage remaining
+      const percentageLeft = (remaining / totalLifetime) * 100;
+      if (percentageLeft > 50) setColor("green");
+      else if (percentageLeft > 20) setColor("yellow");
+      else setColor("red");
+
+      // Format time
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+      if (hours > 24) {
+        const days = Math.floor(hours / 24);
+        const remHours = hours % 24;
+        setTimeLeft(`${days}д ${remHours}ч`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours}ч ${minutes}м`);
+      } else if (minutes > 0) {
+        setTimeLeft(`${minutes}м ${seconds}с`);
+      } else {
+        setTimeLeft(`${seconds}с`);
+      }
     };
 
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [expiresAt]);
+  }, [createdAtStr, expiresAtStr]);
 
-  if (timeLeft === null) return "";
-  if (timeLeft <= 0) return "Истёк";
-
-  const d = Math.floor(timeLeft / (3600 * 24));
-  const h = Math.floor((timeLeft % (3600 * 24)) / 3600);
-  const m = Math.floor((timeLeft % 3600) / 60);
-  const s = timeLeft % 60;
-
-  if (d > 0) return `${d}д ${h}ч`;
-  if (h > 0) return `${h}ч ${m}м`;
-  if (m > 0) return `${m}м ${s}с`;
-  return `${s}с`;
+  return { timeLeft, color, isExpired };
 }

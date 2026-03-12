@@ -1,51 +1,58 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Clock, Feather } from "lucide-react";
-import { useCreateWhisper, getGetWhispersQueryKey, type CreateWhisperRequestLifetime } from "@workspace/api-client-react";
+import { X, Feather } from "lucide-react";
+import { useCreateWhisper, getGetWhispersQueryKey, getGetStatsQueryKey, getGetProfileQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { Button, Textarea } from "./ui-elements";
+import { toast } from "sonner";
 
 const schema = z.object({
-  content: z.string().min(1, "Секрет не может быть пустым").max(500, "Слишком длинный секрет"),
-  lifetime: z.enum(["1h", "24h", "7d"] as const),
+  content: z.string().min(1, "Шёпот не может быть пустым").max(500, "Слишком длинный шёпот (макс 500)"),
+  lifetime: z.enum(["1h", "24h", "7d"]),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-interface CreateWhisperDialogProps {
+interface Props {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function CreateWhisperDialog({ isOpen, onClose }: CreateWhisperDialogProps) {
+export function CreateWhisperDialog({ isOpen, onClose }: Props) {
   const queryClient = useQueryClient();
-  const { register, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm<FormValues>({
+
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      content: "",
-      lifetime: "24h",
+      lifetime: "24h"
     }
   });
 
-  const { mutate: createWhisper, isPending } = useCreateWhisper({
+  const lifetimeValue = watch("lifetime");
+  const contentValue = watch("content") || "";
+
+  const createMutation = useCreateWhisper({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetWhispersQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetStatsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetProfileQueryKey() });
+        toast.success("Шёпот отправлен во мрак");
         reset();
         onClose();
+      },
+      onError: (err: any) => {
+        toast.error(err?.data?.error || "Не удалось отправить шёпот");
       }
     }
   });
 
   const onSubmit = (data: FormValues) => {
-    createWhisper({ data: { content: data.content, lifetime: data.lifetime as CreateWhisperRequestLifetime } });
+    createMutation.mutate({ data });
   };
-
-  const content = watch("content");
-  const selectedLifetime = watch("lifetime");
 
   return (
     <AnimatePresence>
@@ -56,87 +63,86 @@ export function CreateWhisperDialog({ isOpen, onClose }: CreateWhisperDialogProp
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-40"
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="glass-panel w-full max-w-lg rounded-3xl p-6 relative pointer-events-auto border border-primary/20 shadow-[0_0_40px_-15px_rgba(120,50,255,0.3)]"
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-8 relative pointer-events-auto"
             >
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-full transition-colors"
+                className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="mb-6 flex items-center space-x-3 text-primary">
-                <Feather className="w-6 h-6" />
-                <h2 className="text-2xl font-serif font-bold text-foreground">Поделиться шёпотом</h2>
+              <div className="mb-6 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-[0_0_20px_-5px_rgba(120,50,255,0.4)]">
+                  <Feather className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground font-serif">Прошептать секрет</h2>
+                  <p className="text-muted-foreground text-sm">Никто не узнает, что это вы.</p>
+                </div>
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div>
-                  <textarea
+                  <Textarea
                     {...register("content")}
-                    placeholder="Напишите свой секрет... (он будет полностью анонимен)"
-                    className="w-full bg-black/20 border border-white/10 rounded-2xl p-4 min-h-[150px] text-foreground font-serif text-xl placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent resize-none transition-all"
+                    placeholder="Напишите то, о чём молчите..."
+                    className="text-lg placeholder:text-xl"
                   />
-                  <div className="flex justify-between mt-2">
-                    <span className="text-xs text-destructive">{errors.content?.message}</span>
-                    <span className={cn(
-                      "text-xs font-mono transition-colors",
-                      content.length > 450 ? "text-orange-400" : "text-muted-foreground"
-                    )}>
-                      {content.length}/500
+                  <div className="flex justify-between items-center mt-2">
+                    {errors.content ? (
+                      <p className="text-xs text-destructive pl-1">{errors.content.message}</p>
+                    ) : (
+                      <span /> 
+                    )}
+                    <span className={cn("text-xs", contentValue.length > 450 ? "text-destructive" : "text-muted-foreground")}>
+                      {contentValue.length}/500
                     </span>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
-                    <Clock className="w-4 h-4" />
-                    <span>Время жизни секрета</span>
-                  </label>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-3">Время жизни шёпота</label>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { value: "1h", label: "1 час", desc: "Короткий миг" },
-                      { value: "24h", label: "24 часа", desc: "Один день" },
-                      { value: "7d", label: "7 дней", desc: "Долгая память" }
+                      { value: "1h", label: "1 Час", desc: "Быстро сгорит" },
+                      { value: "24h", label: "24 Часа", desc: "Оптимально" },
+                      { value: "7d", label: "7 Дней", desc: "Долгая память" }
                     ].map((opt) => (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() => setValue("lifetime", opt.value as "1h" | "24h" | "7d")}
                         className={cn(
-                          "flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200",
-                          selectedLifetime === opt.value
-                            ? "bg-primary/20 border-primary text-primary-foreground shadow-[0_0_15px_-3px_rgba(120,50,255,0.4)]"
-                            : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                          "flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-left",
+                          lifetimeValue === opt.value 
+                            ? "bg-primary/20 border-primary shadow-[0_0_15px_-5px_rgba(120,50,255,0.4)]" 
+                            : "bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10 text-muted-foreground"
                         )}
                       >
-                        <span className="font-semibold">{opt.label}</span>
-                        <span className="text-[10px] opacity-70 mt-1">{opt.desc}</span>
+                        <span className={cn("font-bold text-lg", lifetimeValue === opt.value ? "text-primary-foreground" : "")}>
+                          {opt.label}
+                        </span>
+                        <span className="text-[10px] mt-1 opacity-70">{opt.desc}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="pt-4">
-                  <button
-                    type="submit"
-                    disabled={isPending}
-                    className="w-full flex items-center justify-center space-x-2 bg-primary hover:bg-primary/90 text-primary-foreground py-4 rounded-2xl font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <span>{isPending ? "Отправляем во тьму..." : "Прошептать"}</span>
-                    {!isPending && <Send className="w-4 h-4 ml-2" />}
-                  </button>
-                  <p className="text-center text-xs text-muted-foreground/60 mt-4">
-                    Ваш секрет полностью анонимен. Никто не узнает, кто вы.
-                  </p>
-                </div>
+                <Button
+                  type="submit"
+                  isLoading={createMutation.isPending}
+                  className="w-full h-14 text-lg rounded-2xl"
+                >
+                  Отпустить во мрак
+                </Button>
               </form>
             </motion.div>
           </div>

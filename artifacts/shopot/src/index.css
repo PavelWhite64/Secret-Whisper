@@ -69,10 +69,11 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-background text-foreground min-h-screen;
     background-image: 
-      radial-gradient(circle at 15% 50%, rgba(120, 50, 255, 0.05), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(200, 50, 255, 0.05), transparent 25%);
+      radial-gradient(circle at 15% 50%, rgba(120, 50, 255, 0.08), transparent 35%),
+      radial-gradient(circle at 85% 30%, rgba(200, 50, 255, 0.05), transparent 35%);
+    background-color: hsl(var(--background));
     background-attachment: fixed;
   }
   
@@ -98,7 +99,7 @@
 
 /* Glass effect utilities */
 .glass-panel {
-  @apply bg-card/40 backdrop-blur-xl border border-white/5 shadow-2xl shadow-black/40;
+  @apply bg-card/60 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50;
 }
 
 .text-gradient {

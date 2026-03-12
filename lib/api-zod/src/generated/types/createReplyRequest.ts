@@ -6,12 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface AuthRequest {
+export interface CreateReplyRequest {
   /**
-   * @minLength 3
-   * @maxLength 30
+   * @minLength 1
+   * @maxLength 300
    */
-  username: string;
-  /** @minLength 6 */
-  password: string;
+  content: string;
 }

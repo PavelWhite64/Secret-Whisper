@@ -1,59 +1,66 @@
-import { useGetWhispers } from "@workspace/api-client-react";
-import { WhisperCard } from "@/components/whisper-card";
+import { useEffect } from "react";
+import { useGetWhispers, useGetStats, useGetMe } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
-import { motion } from "framer-motion";
+import { WhisperCard } from "@/components/whisper-card";
 import { Loader2, Wind } from "lucide-react";
+import { motion } from "framer-motion";
 
 export function Feed() {
-  const { data, isLoading, isError } = useGetWhispers(
-    { page: 1, limit: 50 },
-    {
-      query: {
-        refetchInterval: 10000, // Refresh every 10 seconds to update whispers/expiry
-      }
-    }
+  const { data: stats } = useGetStats({ query: { refetchInterval: 30000 } });
+  const { data: user } = useGetMe({ query: { retry: false } });
+  const { data, isLoading, refetch } = useGetWhispers(
+    { page: 1, limit: 50 }, 
+    { query: { refetchInterval: 30000 } } // Auto-refresh feed every 30s
   );
 
   return (
     <Layout>
-      <div className="mb-10 text-center md:text-left">
-        <h1 className="text-3xl md:text-5xl font-serif font-bold text-foreground mb-4 opacity-90">
-          Секреты во мраке
-        </h1>
-        <p className="text-muted-foreground md:text-lg max-w-2xl">
-          Читайте анонимные признания. Они исчезнут, как только истечёт их время. 
-          Никто не знает, кто их оставил.
-        </p>
-      </div>
-
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary/50" />
-          <p className="text-sm font-medium">Вслушиваемся в пустоту...</p>
-        </div>
-      ) : isError ? (
-        <div className="glass-panel p-8 rounded-2xl text-center border-destructive/20 bg-destructive/5">
-          <p className="text-destructive font-medium">Связь прервана. Шёпот утих.</p>
-        </div>
-      ) : data?.whispers.length === 0 ? (
+      {/* Global Stats Banner */}
+      {stats && (
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center justify-center py-24 px-4 text-center glass-panel rounded-3xl"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between backdrop-blur-sm"
         >
-          <Wind className="w-16 h-16 text-muted-foreground/30 mb-6" />
-          <h3 className="text-2xl font-serif font-bold text-foreground/80 mb-2">Здесь слишком тихо</h3>
-          <p className="text-muted-foreground max-w-md">
-            Пока никто не осмелился оставить свой секрет. Станьте первым, кто нарушит тишину.
-          </p>
+          <div className="flex flex-col">
+            <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Умерло шёпотов навсегда</span>
+            <span className="text-3xl font-serif font-bold text-foreground flex items-center gap-2">
+              🕯️ {stats.totalDied.toLocaleString()}
+            </span>
+          </div>
+          <div className="text-right flex flex-col">
+            <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Живых сейчас</span>
+            <span className="text-xl font-bold text-primary">{stats.totalAlive.toLocaleString()}</span>
+          </div>
         </motion.div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {data?.whispers.map((whisper, i) => (
-            <WhisperCard key={whisper.id} whisper={whisper} />
-          ))}
-        </div>
       )}
+
+      {/* Feed */}
+      <div className="space-y-6">
+        {isLoading ? (
+          <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
+            <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
+            <p>Вслушиваемся во мрак...</p>
+          </div>
+        ) : data?.whispers.length === 0 ? (
+          <div className="py-20 flex flex-col items-center justify-center text-muted-foreground text-center glass-panel rounded-3xl border-dashed">
+            <Wind className="w-12 h-12 mb-4 opacity-50" />
+            <h3 className="text-xl font-serif text-foreground mb-2">Здесь слишком тихо</h3>
+            <p className="max-w-xs">Пока никто не осмелился оставить свой секрет. Станьте первым, кто нарушит тишину.</p>
+          </div>
+        ) : (
+          data?.whispers.map((whisper, index) => (
+            <motion.div
+              key={whisper.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <WhisperCard whisper={whisper} currentUser={user ?? null} />
+            </motion.div>
+          ))
+        )}
+      </div>
     </Layout>
   );
 }

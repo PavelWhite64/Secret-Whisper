@@ -3,20 +3,29 @@
  * Do not edit manually.
  * Api
  * Shopot - Anonymous Secret Sharing API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export * from "./authRequest";
 export * from "./authResponse";
+export * from "./createReplyRequest";
 export * from "./createWhisperRequest";
 export * from "./createWhisperRequestLifetime";
 export * from "./errorResponse";
+export * from "./extendRequest";
+export * from "./getTopWhispersParams";
 export * from "./getWhispersParams";
 export * from "./healthStatus";
+export * from "./marketActionResponse";
+export * from "./profileResponse";
+export * from "./profileResponseStats";
 export * from "./reactionRequest";
 export * from "./reactionRequestType";
 export * from "./reactionsCount";
 export * from "./reactionsResponse";
+export * from "./repliesListResponse";
+export * from "./replyResponse";
+export * from "./statsResponse";
 export * from "./successResponse";
 export * from "./userResponse";
 export * from "./whisperResponse";

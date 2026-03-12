@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Shopot - Anonymous Secret Sharing API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
@@ -30,15 +30,13 @@ export interface AuthRequest {
 export interface UserResponse {
   id: number;
   username: string;
+  coins: number;
 }
 
 export interface AuthResponse {
   user: UserResponse;
 }
 
-/**
- * How long the whisper lives before disappearing
- */
 export type CreateWhisperRequestLifetime =
   (typeof CreateWhisperRequestLifetime)[keyof typeof CreateWhisperRequestLifetime];
 
@@ -54,7 +52,6 @@ export interface CreateWhisperRequest {
    * @maxLength 500
    */
   content: string;
-  /** How long the whisper lives before disappearing */
   lifetime: CreateWhisperRequestLifetime;
 }
 
@@ -72,6 +69,7 @@ export interface WhisperResponse {
   createdAt: string;
   reactions: ReactionsCount;
   isOwn: boolean;
+  replyCount: number;
 }
 
 export interface WhispersListResponse {
@@ -96,9 +94,71 @@ export interface ReactionRequest {
 
 export interface ReactionsResponse {
   reactions: ReactionsCount;
+  /** Updated coins for the whisper owner (only if logged in and it's your whisper) */
+  coins?: number;
+}
+
+export interface CreateReplyRequest {
+  /**
+   * @minLength 1
+   * @maxLength 300
+   */
+  content: string;
+}
+
+export interface ReplyResponse {
+  id: string;
+  content: string;
+  createdAt: string;
+  isOwn: boolean;
+}
+
+export interface RepliesListResponse {
+  replies: ReplyResponse[];
+}
+
+export interface StatsResponse {
+  /** Total whispers that have died since the beginning */
+  totalDied: number;
+  /** Currently alive whispers */
+  totalAlive: number;
+  totalCreated: number;
+}
+
+export type ProfileResponseStats = {
+  totalCreated: number;
+  totalDied: number;
+  totalReactionsReceived: number;
+};
+
+export interface ProfileResponse {
+  user: UserResponse;
+  whispers: WhisperResponse[];
+  stats: ProfileResponseStats;
+}
+
+export interface ExtendRequest {
+  /**
+   * Hours to add (costs 5 coins per hour)
+   * @minimum 1
+   * @maximum 24
+   */
+  hours: number;
+}
+
+export interface MarketActionResponse {
+  success: boolean;
+  coinsSpent: number;
+  coinsRemaining: number;
+  newExpiresAt?: string;
+  message: string;
 }
 
 export type GetWhispersParams = {
   page?: number;
+  limit?: number;
+};
+
+export type GetTopWhispersParams = {
   limit?: number;
 };

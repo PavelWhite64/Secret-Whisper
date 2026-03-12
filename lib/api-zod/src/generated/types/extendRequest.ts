@@ -6,12 +6,11 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface AuthRequest {
+export interface ExtendRequest {
   /**
-   * @minLength 3
-   * @maxLength 30
+   * Hours to add (costs 5 coins per hour)
+   * @minimum 1
+   * @maximum 24
    */
-  username: string;
-  /** @minLength 6 */
-  password: string;
+  hours: number;
 }

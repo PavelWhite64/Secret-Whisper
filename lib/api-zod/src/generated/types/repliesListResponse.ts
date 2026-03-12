@@ -5,13 +5,8 @@
  * Shopot - Anonymous Secret Sharing API
  * OpenAPI spec version: 0.2.0
  */
+import type { ReplyResponse } from "./replyResponse";
 
-export interface AuthRequest {
-  /**
-   * @minLength 3
-   * @maxLength 30
-   */
-  username: string;
-  /** @minLength 6 */
-  password: string;
+export interface RepliesListResponse {
+  replies: ReplyResponse[];
 }

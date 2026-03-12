@@ -3,10 +3,12 @@
  * Do not edit manually.
  * Api
  * Shopot - Anonymous Secret Sharing API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { ReactionsCount } from "./reactionsCount";
 
 export interface ReactionsResponse {
   reactions: ReactionsCount;
+  /** Updated coins for the whisper owner (only if logged in and it's your whisper) */
+  coins?: number;
 }
