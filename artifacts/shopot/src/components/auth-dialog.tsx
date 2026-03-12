@@ -30,8 +30,8 @@ export function AuthDialog({ isOpen, onClose }: AuthDialogProps) {
     resolver: zodResolver(schema),
   });
 
-  const onAuthSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+  const onAuthSuccess = (data: { user: { id: number; username: string; coins: number } }) => {
+    queryClient.setQueryData(getGetMeQueryKey(), data.user);
     queryClient.invalidateQueries({ queryKey: getGetWhispersQueryKey() });
     setAuthError(null);
     reset();
