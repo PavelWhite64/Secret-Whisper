@@ -269,14 +269,14 @@ export const ExtendWhisperParams = zod.object({
   id: zod.coerce.string(),
 });
 
-export const extendWhisperBodyHoursMax = 24;
+export const extendWhisperBodyCoinsMax = 500;
 
 export const ExtendWhisperBody = zod.object({
-  hours: zod
+  coins: zod
     .number()
     .min(1)
-    .max(extendWhisperBodyHoursMax)
-    .describe("Hours to add (costs 5 coins per hour)"),
+    .max(extendWhisperBodyCoinsMax)
+    .describe("Coins to spend. Each coin adds 15 minutes of life."),
 });
 
 export const ExtendWhisperResponse = zod.object({
@@ -288,10 +288,23 @@ export const ExtendWhisperResponse = zod.object({
 });
 
 /**
- * @summary Spend coins to kill a whisper early
+ * @summary Spend coins to curse a whisper (remove time)
  */
 export const KillWhisperParams = zod.object({
   id: zod.coerce.string(),
+});
+
+export const killWhisperBodyCoinsMin = 0;
+export const killWhisperBodyCoinsMax = 500;
+
+export const KillWhisperBody = zod.object({
+  coins: zod
+    .number()
+    .min(killWhisperBodyCoinsMin)
+    .max(killWhisperBodyCoinsMax)
+    .describe(
+      "Coins to spend. Each coin removes 15 minutes. 0 is allowed only for own whispers.",
+    ),
 });
 
 export const KillWhisperResponse = zod.object({

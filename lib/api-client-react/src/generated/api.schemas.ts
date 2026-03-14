@@ -139,11 +139,20 @@ export interface ProfileResponse {
 
 export interface ExtendRequest {
   /**
-   * Hours to add (costs 5 coins per hour)
+   * Coins to spend. Each coin adds 15 minutes of life.
    * @minimum 1
-   * @maximum 24
+   * @maximum 500
    */
-  hours: number;
+  coins: number;
+}
+
+export interface KillRequest {
+  /**
+   * Coins to spend. Each coin removes 15 minutes. 0 is allowed only for own whispers.
+   * @minimum 0
+   * @maximum 500
+   */
+  coins: number;
 }
 
 export interface MarketActionResponse {

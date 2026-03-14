@@ -26,6 +26,7 @@ import type {
   GetTopWhispersParams,
   GetWhispersParams,
   HealthStatus,
+  KillRequest,
   MarketActionResponse,
   ProfileResponse,
   ReactionRequest,
@@ -1291,7 +1292,7 @@ export const useExtendWhisper = <
 };
 
 /**
- * @summary Spend coins to kill a whisper early
+ * @summary Spend coins to curse a whisper (remove time)
  */
 export const getKillWhisperUrl = (id: string) => {
   return `/api/market/kill/${id}`;
@@ -1299,11 +1300,14 @@ export const getKillWhisperUrl = (id: string) => {
 
 export const killWhisper = async (
   id: string,
+  killRequest: KillRequest,
   options?: RequestInit,
 ): Promise<MarketActionResponse> => {
   return customFetch<MarketActionResponse>(getKillWhisperUrl(id), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(killRequest),
   });
 };
 
@@ -1314,14 +1318,14 @@ export const getKillWhisperMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof killWhisper>>,
     TError,
-    { id: string },
+    { id: string; data: BodyType<KillRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof killWhisper>>,
   TError,
-  { id: string },
+  { id: string; data: BodyType<KillRequest> },
   TContext
 > => {
   const mutationKey = ["killWhisper"];
@@ -1335,11 +1339,11 @@ export const getKillWhisperMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof killWhisper>>,
-    { id: string }
+    { id: string; data: BodyType<KillRequest> }
   > = (props) => {
-    const { id } = props ?? {};
+    const { id, data } = props ?? {};
 
-    return killWhisper(id, requestOptions);
+    return killWhisper(id, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -1348,11 +1352,11 @@ export const getKillWhisperMutationOptions = <
 export type KillWhisperMutationResult = NonNullable<
   Awaited<ReturnType<typeof killWhisper>>
 >;
-
+export type KillWhisperMutationBody = BodyType<KillRequest>;
 export type KillWhisperMutationError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Spend coins to kill a whisper early
+ * @summary Spend coins to curse a whisper (remove time)
  */
 export const useKillWhisper = <
   TError = ErrorType<ErrorResponse>,
@@ -1361,14 +1365,14 @@ export const useKillWhisper = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof killWhisper>>,
     TError,
-    { id: string },
+    { id: string; data: BodyType<KillRequest> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof killWhisper>>,
   TError,
-  { id: string },
+  { id: string; data: BodyType<KillRequest> },
   TContext
 > => {
   return useMutation(getKillWhisperMutationOptions(options));

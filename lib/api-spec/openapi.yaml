@@ -341,13 +341,19 @@ paths:
     post:
       operationId: killWhisper
       tags: [market]
-      summary: Spend coins to kill a whisper early
+      summary: Spend coins to curse a whisper (remove time)
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KillRequest"
       responses:
         "200":
           description: OK
@@ -569,12 +575,22 @@ components:
     ExtendRequest:
       type: object
       properties:
-        hours:
+        coins:
           type: integer
           minimum: 1
-          maximum: 24
-          description: Hours to add (costs 5 coins per hour)
-      required: [hours]
+          maximum: 500
+          description: Coins to spend. Each coin adds 15 minutes of life.
+      required: [coins]
+
+    KillRequest:
+      type: object
+      properties:
+        coins:
+          type: integer
+          minimum: 0
+          maximum: 500
+          description: Coins to spend. Each coin removes 15 minutes. 0 is allowed only for own whispers.
+      required: [coins]
 
     MarketActionResponse:
       type: object

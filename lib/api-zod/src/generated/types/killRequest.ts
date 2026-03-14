@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface ExtendRequest {
+export interface KillRequest {
   /**
-   * Coins to spend. Each coin adds 15 minutes of life.
-   * @minimum 1
+   * Coins to spend. Each coin removes 15 minutes. 0 is allowed only for own whispers.
+   * @minimum 0
    * @maximum 500
    */
   coins: number;

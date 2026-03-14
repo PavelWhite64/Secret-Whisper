@@ -16,6 +16,7 @@ export * from "./extendRequest";
 export * from "./getTopWhispersParams";
 export * from "./getWhispersParams";
 export * from "./healthStatus";
+export * from "./killRequest";
 export * from "./marketActionResponse";
 export * from "./profileResponse";
 export * from "./profileResponseStats";

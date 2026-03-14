@@ -117,8 +117,8 @@ export function WhisperCard({ whisper, currentUser }: Props) {
         </AnimatePresence>
       </div>
 
-      <ExtendDialog isOpen={showExtend} onClose={() => setShowExtend(false)} whisperId={whisper.id} />
-      <KillDialog isOpen={showKill} onClose={() => setShowKill(false)} whisperId={whisper.id} isOwn={whisper.isOwn} />
+      <ExtendDialog isOpen={showExtend} onClose={() => setShowExtend(false)} whisperId={whisper.id} userCoins={currentUser?.coins ?? 0} />
+      <KillDialog isOpen={showKill} onClose={() => setShowKill(false)} whisperId={whisper.id} isOwn={whisper.isOwn ?? false} userCoins={currentUser?.coins ?? 0} />
     </>
   );
 }
