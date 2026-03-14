@@ -69,16 +69,23 @@ export function WhisperCard({ whisper, currentUser }: Props) {
               {whisper.lifetime}
             </span>
             
-            {/* Market Actions Dropdown (simplistic approach: just show icons on hover for desktop, always visible for mobile) */}
             {currentUser && (
-              <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                {!whisper.isOwn && (
-                  <button onClick={() => setShowExtend(true)} className="p-1.5 bg-accent/10 text-accent hover:bg-accent hover:text-white rounded-md transition-colors" title="Продлить жизнь (5 🪙/ч)">
-                    <Hourglass className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                <button onClick={() => setShowKill(true)} className="p-1.5 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white rounded-md transition-colors" title={whisper.isOwn ? "Убить свой (Бесплатно)" : "Убить чужой (20 🪙)"}>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setShowExtend(true)}
+                  className="flex items-center gap-1 px-2 py-1.5 bg-accent/10 text-accent hover:bg-accent hover:text-white rounded-lg transition-colors text-xs font-medium border border-accent/20 hover:border-accent"
+                  title="Защитить — добавить время (1🪙 = +15 мин)"
+                >
+                  <Hourglass className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">+15мин</span>
+                </button>
+                <button
+                  onClick={() => setShowKill(true)}
+                  className="flex items-center gap-1 px-2 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white rounded-lg transition-colors text-xs font-medium border border-destructive/20 hover:border-destructive"
+                  title={whisper.isOwn ? "Убить свой шёпот бесплатно" : "Проклясть — убрать время (1🪙 = −15 мин)"}
+                >
                   <Skull className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{whisper.isOwn ? "Убить" : "−15мин"}</span>
                 </button>
               </div>
             )}
