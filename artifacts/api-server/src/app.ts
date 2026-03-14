@@ -5,11 +5,14 @@ import router from "./routes";
 
 const app: Express = express();
 
+app.set("trust proxy", 1);
+
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const sessionSecret = process.env["SESSION_SECRET"] ?? "shopot-secret-key-change-in-prod";
+const isProd = process.env["NODE_ENV"] === "production";
 
 app.use(
   session({
@@ -19,8 +22,8 @@ app.use(
     cookie: {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "none",
-      secure: true,
+      sameSite: isProd ? "none" : "lax",
+      secure: isProd ? true : false,
     },
   })
 );
