@@ -47,6 +47,16 @@ export const insertReplySchema = createInsertSchema(repliesTable).omit({ id: tru
 export type InsertReply = z.infer<typeof insertReplySchema>;
 export type Reply = typeof repliesTable.$inferSelect;
 
+export const whisperReactionsTable = pgTable("whisper_reactions", {
+  id: serial("id").primaryKey(),
+  whisperId: integer("whisper_id").notNull().references(() => whispersTable.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 10 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type WhisperReaction = typeof whisperReactionsTable.$inferSelect;
+
 export const globalStatsTable = pgTable("global_stats", {
   id: integer("id").primaryKey().default(1),
   totalDied: integer("total_died").default(0).notNull(),

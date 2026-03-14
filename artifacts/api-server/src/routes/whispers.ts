@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { whispersTable, repliesTable, usersTable, globalStatsTable } from "@workspace/db";
-import { eq, gt, desc, sql, count } from "drizzle-orm";
+import { whispersTable, repliesTable, usersTable, globalStatsTable, whisperReactionsTable } from "@workspace/db";
+import { eq, gt, desc, sql, count, and } from "drizzle-orm";
 import {
   CreateWhisperBody,
   GetWhispersQueryParams,
@@ -144,37 +144,78 @@ router.post("/:id/react", async (req, res) => {
     return;
   }
 
-  const updates: Record<string, unknown> = {};
-  if (type === "fire") updates.reactionFire = whisper.reactionFire + 1;
-  if (type === "heart") updates.reactionHeart = whisper.reactionHeart + 1;
-  if (type === "wow") updates.reactionWow = whisper.reactionWow + 1;
+  const col = type === "fire" ? "reaction_fire" : type === "heart" ? "reaction_heart" : "reaction_wow";
 
-  const [updated] = await db
-    .update(whispersTable)
-    .set(updates as Parameters<typeof db.update>[0])
-    .where(eq(whispersTable.id, id))
-    .returning();
-
-  if (whisper.userId && whisper.userId !== reactorUserId) {
-    const coinsPerReaction = whisper.lifetime === "1h" ? 3 : whisper.lifetime === "24h" ? 2 : 1;
-    await db
-      .update(usersTable)
-      .set({
-        coins: sql`coins + ${coinsPerReaction}`,
-        totalReactionsReceived: sql`total_reactions_received + 1`,
-      })
-      .where(eq(usersTable.id, whisper.userId));
+  if (!reactorUserId) {
+    // Anonymous — just increment, no coin tracking, no dedup
+    const [updated] = await db
+      .update(whispersTable)
+      .set({ [col === "reaction_fire" ? "reactionFire" : col === "reaction_heart" ? "reactionHeart" : "reactionWow"]: sql`${sql.raw(col)} + 1` })
+      .where(eq(whispersTable.id, id))
+      .returning();
+    return res.json({ reactions: { fire: updated.reactionFire, heart: updated.reactionHeart, wow: updated.reactionWow }, userReaction: null });
   }
 
-  let coinsUpdated: number | undefined;
-  if (reactorUserId) {
-    const [me] = await db.select({ coins: usersTable.coins }).from(usersTable).where(eq(usersTable.id, reactorUserId)).limit(1);
-    coinsUpdated = me?.coins;
+  // Check existing reaction
+  const [existing] = await db
+    .select()
+    .from(whisperReactionsTable)
+    .where(and(eq(whisperReactionsTable.whisperId, id), eq(whisperReactionsTable.userId, reactorUserId)))
+    .limit(1);
+
+  let updatedWhisper = whisper;
+
+  if (existing) {
+    if (existing.type === type) {
+      // Toggle off — remove reaction
+      await db.delete(whisperReactionsTable)
+        .where(and(eq(whisperReactionsTable.whisperId, id), eq(whisperReactionsTable.userId, reactorUserId)));
+      const oldCol = existing.type === "fire" ? "reactionFire" : existing.type === "heart" ? "reactionHeart" : "reactionWow";
+      const [u] = await db.update(whispersTable)
+        .set({ [oldCol]: sql`${sql.raw(existing.type === "fire" ? "reaction_fire" : existing.type === "heart" ? "reaction_heart" : "reaction_wow")} - 1` })
+        .where(eq(whispersTable.id, id))
+        .returning();
+      updatedWhisper = u;
+    } else {
+      // Switch type — decrement old, increment new (no extra coins)
+      const oldColDb = existing.type === "fire" ? "reaction_fire" : existing.type === "heart" ? "reaction_heart" : "reaction_wow";
+      const newColDb = type === "fire" ? "reaction_fire" : type === "heart" ? "reaction_heart" : "reaction_wow";
+      const oldColJs = existing.type === "fire" ? "reactionFire" : existing.type === "heart" ? "reactionHeart" : "reactionWow";
+      const newColJs = type === "fire" ? "reactionFire" : type === "heart" ? "reactionHeart" : "reactionWow";
+      await db.update(whisperReactionsTable)
+        .set({ type })
+        .where(and(eq(whisperReactionsTable.whisperId, id), eq(whisperReactionsTable.userId, reactorUserId)));
+      const [u] = await db.update(whispersTable)
+        .set({
+          [oldColJs]: sql`${sql.raw(oldColDb)} - 1`,
+          [newColJs]: sql`${sql.raw(newColDb)} + 1`,
+        })
+        .where(eq(whispersTable.id, id))
+        .returning();
+      updatedWhisper = u;
+    }
+  } else {
+    // New reaction — add + give coins to owner
+    await db.insert(whisperReactionsTable).values({ whisperId: id, userId: reactorUserId, type });
+    const newColJs = type === "fire" ? "reactionFire" : type === "heart" ? "reactionHeart" : "reactionWow";
+    const [u] = await db.update(whispersTable)
+      .set({ [newColJs]: sql`${sql.raw(col)} + 1` })
+      .where(eq(whispersTable.id, id))
+      .returning();
+    updatedWhisper = u;
+
+    if (whisper.userId && whisper.userId !== reactorUserId) {
+      const coinsPerReaction = whisper.lifetime === "1h" ? 3 : whisper.lifetime === "24h" ? 2 : 1;
+      await db.update(usersTable).set({
+        coins: sql`coins + ${coinsPerReaction}`,
+        totalReactionsReceived: sql`total_reactions_received + 1`,
+      }).where(eq(usersTable.id, whisper.userId));
+    }
   }
 
   res.json({
-    reactions: { fire: updated.reactionFire, heart: updated.reactionHeart, wow: updated.reactionWow },
-    coins: coinsUpdated,
+    reactions: { fire: updatedWhisper.reactionFire, heart: updatedWhisper.reactionHeart, wow: updatedWhisper.reactionWow },
+    userReaction: existing?.type === type ? null : type,
   });
 });
 
