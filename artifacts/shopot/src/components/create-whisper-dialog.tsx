@@ -112,9 +112,9 @@ export function CreateWhisperDialog({ isOpen, onClose }: Props) {
                   <label className="block text-sm font-medium text-foreground mb-3">Время жизни шёпота</label>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { value: "1h", label: "1 Час", desc: "Быстро сгорит" },
-                      { value: "24h", label: "24 Часа", desc: "Оптимально" },
-                      { value: "7d", label: "7 Дней", desc: "Долгая память" }
+                      { value: "1h", label: "1 Час", desc: "🪙🪙🪙 3 за реакцию" },
+                      { value: "24h", label: "24 Часа", desc: "🪙🪙 2 за реакцию" },
+                      { value: "7d", label: "7 Дней", desc: "🪙 1 за реакцию" }
                     ].map((opt) => (
                       <button
                         key={opt.value}

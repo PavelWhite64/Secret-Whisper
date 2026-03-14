@@ -14,7 +14,7 @@ router.post("/register", async (req, res) => {
   const existing = await db.select().from(usersTable).where(eq(usersTable.username, username)).limit(1);
   if (existing.length > 0) { res.status(409).json({ error: "Имя пользователя уже занято" }); return; }
   const passwordHash = await bcrypt.hash(password, 10);
-  const [user] = await db.insert(usersTable).values({ username, passwordHash }).returning();
+  const [user] = await db.insert(usersTable).values({ username, passwordHash, coins: 5 }).returning();
   (req.session as Record<string, unknown>).userId = user.id;
   res.status(201).json({ user: { id: user.id, username: user.username, coins: user.coins } });
 });

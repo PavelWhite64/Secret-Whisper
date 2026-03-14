@@ -61,43 +61,57 @@ export function Profile() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="glass-panel rounded-3xl p-6 border-t border-primary/20"
+            className="glass-panel rounded-3xl p-6 border-t border-primary/20 space-y-4"
           >
-            <h2 className="text-lg font-serif font-bold text-foreground mb-4">⚔️ Чёрный рынок</h2>
+            <h2 className="text-lg font-serif font-bold text-foreground">🪙 Как зарабатывать монеты</h2>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-black/40 rounded-xl p-4 border border-white/10 flex items-start gap-3">
-                <Zap className="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+              <div className="bg-black/40 rounded-xl p-4 border border-yellow-400/20 flex flex-col gap-2">
+                <div className="text-yellow-400 font-bold text-sm">🕯️ 1h шёпот</div>
+                <div className="text-2xl font-bold text-yellow-400">+3 🪙</div>
+                <p className="text-xs text-muted-foreground">за каждую реакцию. Высокий риск — высокая награда.</p>
+              </div>
+              <div className="bg-black/40 rounded-xl p-4 border border-white/10 flex flex-col gap-2">
+                <div className="text-foreground font-bold text-sm">📅 24h шёпот</div>
+                <div className="text-2xl font-bold text-foreground">+2 🪙</div>
+                <p className="text-xs text-muted-foreground">за каждую реакцию. Золотая середина.</p>
+              </div>
+              <div className="bg-black/40 rounded-xl p-4 border border-white/5 flex flex-col gap-2">
+                <div className="text-muted-foreground font-bold text-sm">📆 7d шёпот</div>
+                <div className="text-2xl font-bold text-muted-foreground">+1 🪙</div>
+                <p className="text-xs text-muted-foreground">за каждую реакцию. Долго, но стабильно.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="bg-black/40 rounded-xl p-4 border border-green-400/20 flex items-start gap-3">
+                <Zap className="w-5 h-5 text-green-400 mt-0.5 shrink-0" />
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-1">Заработок</h3>
+                  <h3 className="text-sm font-semibold text-green-400 mb-1">Бонус выживания</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    <span className="text-yellow-400 font-bold">+1 🪙</span> за каждую реакцию на ваш шёпот
+                    Шёпот дожил до конца с реакциями? Получи бонус монет. 1h даёт вдвое больше.
                   </p>
                 </div>
               </div>
               <div className="bg-black/40 rounded-xl p-4 border border-accent/20 flex items-start gap-3">
                 <Shield className="w-5 h-5 text-accent mt-0.5 shrink-0" />
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-1">Защита</h3>
+                  <h3 className="text-sm font-semibold text-accent mb-1">Защита</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    <span className="text-accent font-bold">1 🪙 = +15 мин</span> к жизни шёпота.
-                    Тратьте сколько хотите.
+                    <span className="text-accent font-bold">1 🪙 = +15 мин</span> жизни. Чужие могут защищать ваш шёпот!
                   </p>
                 </div>
               </div>
               <div className="bg-black/40 rounded-xl p-4 border border-destructive/20 flex items-start gap-3">
                 <Sword className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-1">Проклятие</h3>
+                  <h3 className="text-sm font-semibold text-destructive mb-1">Проклятие</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    <span className="text-destructive font-bold">1 🪙 = -15 мин</span> от чужого шёпота.
-                    Если время → 0, шёпот умирает.
+                    <span className="text-destructive font-bold">1 🪙 = −15 мин</span>. Время → 0 = смерть.
                   </p>
                 </div>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-3 text-center">
-              Несколько людей могут защищать или проклинать один шёпот — начинается настоящая битва.
-            </p>
           </motion.div>
 
           {/* Own Whispers */}

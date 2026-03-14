@@ -156,10 +156,11 @@ router.post("/:id/react", async (req, res) => {
     .returning();
 
   if (whisper.userId && whisper.userId !== reactorUserId) {
+    const coinsPerReaction = whisper.lifetime === "1h" ? 3 : whisper.lifetime === "24h" ? 2 : 1;
     await db
       .update(usersTable)
       .set({
-        coins: sql`coins + 1`,
+        coins: sql`coins + ${coinsPerReaction}`,
         totalReactionsReceived: sql`total_reactions_received + 1`,
       })
       .where(eq(usersTable.id, whisper.userId));
